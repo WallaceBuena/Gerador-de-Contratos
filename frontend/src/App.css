@@ -1,0 +1,21 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+.clause-dragging {
+    opacity: 0.5;
+    border: 2px dashed #3b82f6;
+}
+.clause-drag-over {
+    transform: scale(1.01);
+    background-color: #eff6ff;
+}
+.clause {
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    cursor: grab;
+}
+.clause:active {
+    cursor: grabbing;
+}
+#clausula-modal, #toast {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}

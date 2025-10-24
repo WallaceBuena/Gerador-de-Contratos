@@ -1,0 +1,8 @@
+django
+djangorestframework
+psycopg2-binary
+django-cors-headers
+pypandoc-binary
+python-docx
+requests
+djangorestframework-simplejwt
