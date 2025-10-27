@@ -1,10 +1,13 @@
 from rest_framework import generics, status, viewsets
 from rest_framework.views import APIView
+from rest_framework.decorators import action # Importar action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FileUploadParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import * # Importa os novos modelos (Entidade, TipoContrato, etc)
 from .serializers import * # Importa os novos serializers
+from .serializers import RascunhoContratoSerializer # Precisa importar o serializer
+from django.shortcuts import get_object_or_404 # Para buscar o objeto manualmente
 from django.http import HttpResponse
 import pypandoc
 import docx
@@ -14,8 +17,40 @@ import tempfile
 import os
 import re
 
+
 logger = logging.getLogger(__name__)
 
+class RascunhoContratoViewSet(viewsets.ViewSet): # <--- MUDANÇA AQUI
+    # queryset = RascunhoContrato.objects.all() # <-- COMENTE TEMPORARIAMENTE
+    # serializer_class = RascunhoContratoSerializer # <-- COMENTE TEMPORARIAMENTE
+
+    # Removemos o @action antes, então mantenha comentado
+    # @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    def update_status(self, request, pk=None):
+        """
+        Atualiza o status de um rascunho de contrato.
+        Espera um payload como: {"status": "REVISAO"}
+        """
+        # Como não estamos mais usando get_object() do ModelViewSet,
+        # precisamos buscar o objeto manualmente.
+        rascunho = get_object_or_404(RascunhoContrato, pk=pk) # <-- MUDANÇA AQUI
+
+        new_status = request.data.get('status')
+
+        valid_statuses = [choice[0] for choice in RascunhoContrato.StatusContrato.choices]
+        if not new_status or new_status not in valid_statuses:
+            return Response(
+                {"error": f"Status inválido. Status válidos são: {', '.join(valid_statuses)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        rascunho.status = new_status
+        rascunho.save(update_fields=['status'])
+
+        # Precisamos instanciar o serializer manualmente agora
+        serializer = RascunhoContratoSerializer(rascunho) # <-- MUDANÇA AQUI
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 # --- NOVOS VIEWSETS (SPRINT F) ---
 class EntidadeViewSet(viewsets.ModelViewSet):
     queryset = Entidade.objects.all()
