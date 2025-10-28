@@ -19,24 +19,27 @@ import re
 
 
 logger = logging.getLogger(__name__)
+class RascunhoContratoViewSet(viewsets.ModelViewSet): # <-- Voltar para ModelViewSet
+    queryset = RascunhoContrato.objects.all() # <-- Descomentar
+    serializer_class = RascunhoContratoSerializer # <-- Descomentar
+    # (Adicionar filtro por usuário logado aqui no futuro)
 
-class RascunhoContratoViewSet(viewsets.ViewSet): # <--- MUDANÇA AQUI
-    # queryset = RascunhoContrato.objects.all() # <-- COMENTE TEMPORARIAMENTE
-    # serializer_class = RascunhoContratoSerializer # <-- COMENTE TEMPORARIAMENTE
-
-    # Removemos o @action antes, então mantenha comentado
-    # @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated]) # <-- Descomentar action
     def update_status(self, request, pk=None):
         """
         Atualiza o status de um rascunho de contrato.
         Espera um payload como: {"status": "REVISAO"}
         """
-        # Como não estamos mais usando get_object() do ModelViewSet,
-        # precisamos buscar o objeto manualmente.
-        rascunho = get_object_or_404(RascunhoContrato, pk=pk) # <-- MUDANÇA AQUI
+        try:
+            # Usar get_object() do ModelViewSet novamente
+            rascunho = self.get_object() # <-- Voltar a usar get_object()
+        except RascunhoContrato.DoesNotExist: # get_object() levanta DoesNotExist ou Http404
+            # ModelViewSet geralmente lida com 404 automaticamente, mas podemos manter a checagem por segurança
+            return Response({"error": "Rascunho não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
         new_status = request.data.get('status')
 
+        # Validação do status (continua igual)
         valid_statuses = [choice[0] for choice in RascunhoContrato.StatusContrato.choices]
         if not new_status or new_status not in valid_statuses:
             return Response(
@@ -44,14 +47,16 @@ class RascunhoContratoViewSet(viewsets.ViewSet): # <--- MUDANÇA AQUI
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Atualiza o status e salva (continua igual)
         rascunho.status = new_status
         rascunho.save(update_fields=['status'])
 
-        # Precisamos instanciar o serializer manualmente agora
-        serializer = RascunhoContratoSerializer(rascunho) # <-- MUDANÇA AQUI
+        # Usar get_serializer() do ModelViewSet novamente
+        serializer = self.get_serializer(rascunho) # <-- Voltar a usar get_serializer()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-# --- NOVOS VIEWSETS (SPRINT F) ---
+
+
+
 class EntidadeViewSet(viewsets.ModelViewSet):
     queryset = Entidade.objects.all()
     serializer_class = EntidadeSerializer
@@ -72,10 +77,10 @@ class TipoContratoViewSet(viewsets.ModelViewSet):
     queryset = TipoContrato.objects.all()
     serializer_class = TipoContratoSerializer
 
-class RascunhoContratoViewSet(viewsets.ModelViewSet):
-    queryset = RascunhoContrato.objects.all()
-    serializer_class = RascunhoContratoSerializer
-    # (Adicionar filtro por usuário logado aqui no futuro)
+#class RascunhoContratoViewSet(viewsets.ModelViewSet):
+#    queryset = RascunhoContrato.objects.all()
+#    serializer_class = RascunhoContratoSerializer
+#    # (Adicionar filtro por usuário logado aqui no futuro)
 
 class AnexoViewSet(viewsets.ModelViewSet):
     queryset = Anexo.objects.all()
