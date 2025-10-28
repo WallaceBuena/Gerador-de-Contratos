@@ -55,8 +55,6 @@ class RascunhoContratoViewSet(viewsets.ModelViewSet): # <-- Voltar para ModelVie
         serializer = self.get_serializer(rascunho) # <-- Voltar a usar get_serializer()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-
 class EntidadeViewSet(viewsets.ModelViewSet):
     queryset = Entidade.objects.all()
     serializer_class = EntidadeSerializer
@@ -77,11 +75,6 @@ class TipoContratoViewSet(viewsets.ModelViewSet):
     queryset = TipoContrato.objects.all()
     serializer_class = TipoContratoSerializer
 
-#class RascunhoContratoViewSet(viewsets.ModelViewSet):
-#    queryset = RascunhoContrato.objects.all()
-#    serializer_class = RascunhoContratoSerializer
-#    # (Adicionar filtro por usuário logado aqui no futuro)
-
 class AnexoViewSet(viewsets.ModelViewSet):
     queryset = Anexo.objects.all()
     serializer_class = AnexoSerializer
@@ -101,7 +94,6 @@ class AnexoViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(anexo)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# --- VIEWS DE UTILITÁRIOS (Mantidas) ---
 
 class ImportClauseTextView(APIView):
     parser_classes = [MultiPartParser]
@@ -121,7 +113,6 @@ class ImportClauseTextView(APIView):
             except Exception as e:
                 return Response({"error": f"Erro ao ler TXT: {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"error": "Formato de arquivo não suportado."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class ExportDocxView(APIView):
     def post(self, request, format=None):
