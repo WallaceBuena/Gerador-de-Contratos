@@ -4,9 +4,8 @@ from rest_framework.decorators import action # Importar action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.permissions import AllowAny, IsAuthenticated # IsAuthenticated será usado
-from .models import * # Importa todos os modelos, incluindo HistoricoRascunho
-from .serializers import * # Importa todos os serializers
-# Note: Não precisa mais importar RascunhoContratoSerializer ou get_object_or_404 separadamente aqui
+from .models import * 
+from .serializers import * 
 from django.http import HttpResponse
 import pypandoc
 import docx
