@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.permissions import AllowAny, IsAuthenticated # IsAuthenticated será usado
 from .models import * 
 from .serializers import * 
+from django.conf import settings
 from django.http import HttpResponse
 import pypandoc
 import docx
@@ -50,20 +51,21 @@ class AnexoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated] # Proteger por padrão
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(rascunho__usuario=self.request.user)
         rascunho_id = self.request.query_params.get('rascunho')
         if rascunho_id:
             # Idealmente, filtrar também pelo usuário dono do rascunho no futuro
             queryset = queryset.filter(rascunho_id=rascunho_id)
         # Filtrar pelo usuário dono do rascunho no futuro aqui também
-        # queryset = queryset.filter(rascunho__usuario=self.request.user) # Exemplo futuro
+        queryset = queryset.filter(rascunho__usuario=self.request.user) # Exemplo futuro
         return queryset
 
     def perform_create(self, serializer):
+        rascunho = serializer.save(usuario=self.request.user) # Garanta que esta linha exista e esteja descomentada
         # Validação extra: garantir que o rascunho pertence ao usuário logado (implementar no futuro)
         rascunho_id = self.request.data.get('rascunho')
         try:
-            rascunho = RascunhoContrato.objects.get(pk=rascunho_id) # , usuario=self.request.user -> adicionar no futuro
+            rascunho = RascunhoContrato.objects.get(pk=rascunho_id, usuario=self.request.user) #
             file_obj = self.request.data['arquivo']
             serializer.save(rascunho=rascunho, nome_arquivo=file_obj.name) # Passa o rascunho validado e o nome
         except RascunhoContrato.DoesNotExist:

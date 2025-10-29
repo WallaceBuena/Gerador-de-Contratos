@@ -20,9 +20,6 @@ urlpatterns = [
     path('export/docx/', views.ExportDocxView.as_view(), name='export-docx'),
     path('utils/viacep/<str:cep>/', views.ViaCEPView.as_view(), name='viacep-proxy'),
     path('clauses/import_text/', views.ImportClauseTextView.as_view(), name='import-clause-text'),
-
-    # --- REMOVA A LINHA ABAIXO ---
-    # path('rascunhos/<int:pk>/update_status/', views.UpdateRascunhoStatusView.as_view(), name='rascunho-update-status'),
 ]
 print('--- URLs Geradas pelo Router (Após Refatoração) ---') # Linha para adicionar
 print(router.urls)                                          # Linha para adicionar

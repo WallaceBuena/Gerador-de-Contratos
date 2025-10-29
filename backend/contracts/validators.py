@@ -25,5 +25,4 @@ def validate_cnpj(value): # Novo validador ABNT
     cnpj = ''.join(re.findall(r'\d', str(value)))
     if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
         raise ValidationError('CNPJ inválido.')
-    # (Lógica de validação de CNPJ mais complexa pode ser adicionada aqui)
     return value

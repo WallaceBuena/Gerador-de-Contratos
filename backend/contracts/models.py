@@ -77,8 +77,8 @@ class Anexo(models.Model):
 class HistoricoRascunho(models.Model):
     rascunho = models.ForeignKey(RascunhoContrato, related_name='historico', on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True) # Data/Hora da criação da versão
-    # Podemos adicionar um campo para o usuário que fez a alteração no futuro:
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    #usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rascunhos', null=True) # Adicionar esta linha (ajuste on_delete se necessário)
     dados_rascunho = models.JSONField(default=dict) # Armazena uma cópia dos dados relevantes
 
     class Meta:
