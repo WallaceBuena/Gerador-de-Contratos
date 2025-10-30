@@ -18,7 +18,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS para Nginx e desenvolvimento local
-ALLOWED_HOSTS = ['django_backend_contratos', '192.168.255.169', 'localhost']
+ALLOWED_HOSTS = ['django_backend_contratos', '192.168.255.169', 'localhost', '127.0.0.1']
 #ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.255.169']
 
 
@@ -124,12 +124,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # Para desenvolvimento do frontend (npm run dev)
     "http://127.0.0.1:5173", # Para desenvolvimento do frontend (npm run dev)
     "http://localhost",     # Para o frontend acedendo via Nginx (porta 80)
     "http://127.0.0.1",     # Para o frontend acedendo via Nginx (porta 80)
-    "http://192.168.255.169:5173"
+    "http://192.168.255.169:5173",
 ]
 
 # REST Framework
