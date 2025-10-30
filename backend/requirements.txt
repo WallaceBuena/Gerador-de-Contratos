@@ -1,3 +1,4 @@
+# backend/requirements.txt
 django
 djangorestframework
 psycopg2-binary
@@ -6,3 +7,6 @@ pypandoc-binary
 python-docx
 requests
 djangorestframework-simplejwt
+gunicorn
+python-dotenv
+pytz

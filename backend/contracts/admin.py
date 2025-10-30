@@ -6,7 +6,8 @@ from .models import (
     Clausula, 
     TipoContrato, 
     RascunhoContrato, 
-    Anexo
+    Anexo,
+    HistoricoRascunho
 )
 
 # Registra todos os novos modelos do Sprint F para que apareçam no Admin
@@ -17,3 +18,4 @@ admin.site.register(Clausula)
 admin.site.register(TipoContrato)
 admin.site.register(RascunhoContrato)
 admin.site.register(Anexo)
+admin.site.register(HistoricoRascunho) # <-- Registrar

@@ -3,9 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action # Importar action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FileUploadParser
-from rest_framework.permissions import AllowAny, IsAuthenticated # IsAuthenticated será usado
-from .models import * 
-from .serializers import * 
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .models import * # Importa todos os modelos, incluindo HistoricoRascunho
+from .serializers import * # Importa todos os serializers
 from django.conf import settings
 from django.http import HttpResponse
 import pypandoc
@@ -51,27 +51,36 @@ class AnexoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated] # Proteger por padrão
 
     def get_queryset(self):
-        queryset = super().get_queryset().filter(rascunho__usuario=self.request.user)
+        # Filtra por usuário (a implementar quando RascunhoContrato tiver 'usuario')
+        # queryset = super().get_queryset().filter(rascunho__usuario=self.request.user)
+        queryset = super().get_queryset() # Temporário
         rascunho_id = self.request.query_params.get('rascunho')
         if rascunho_id:
-            # Idealmente, filtrar também pelo usuário dono do rascunho no futuro
             queryset = queryset.filter(rascunho_id=rascunho_id)
-        # Filtrar pelo usuário dono do rascunho no futuro aqui também
-        queryset = queryset.filter(rascunho__usuario=self.request.user) # Exemplo futuro
         return queryset
 
-    def perform_create(self, serializer):
-        rascunho = serializer.save(usuario=self.request.user) # Garanta que esta linha exista e esteja descomentada
-        # Validação extra: garantir que o rascunho pertence ao usuário logado (implementar no futuro)
-        rascunho_id = self.request.data.get('rascunho')
+    def create(self, request, *args, **kwargs):
+        # Sobrescreve 'create' para lidar corretamente com 'perform_create'
+        # (O seu 'perform_create' tinha uma lógica mista)
+        rascunho_id = request.data.get('rascunho')
+        file_obj = request.data.get('arquivo')
+
+        if not rascunho_id or not file_obj:
+             raise serializers.ValidationError("Dados incompletos (falta 'arquivo' ou 'rascunho').")
+        
         try:
-            rascunho = RascunhoContrato.objects.get(pk=rascunho_id, usuario=self.request.user) #
-            file_obj = self.request.data['arquivo']
-            serializer.save(rascunho=rascunho, nome_arquivo=file_obj.name) # Passa o rascunho validado e o nome
+            # Validação: garantir que o rascunho existe
+            rascunho = RascunhoContrato.objects.get(pk=rascunho_id)
+            # (Adicionar verificação de usuário no futuro: rascunho__usuario=self.request.user)
         except RascunhoContrato.DoesNotExist:
             raise serializers.ValidationError("Rascunho não encontrado ou não pertence ao usuário.")
-        except KeyError:
-             raise serializers.ValidationError("Dados incompletos para criar anexo (falta 'arquivo' ou 'rascunho').")
+
+        # Cria o anexo e salva
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(rascunho=rascunho, nome_arquivo=file_obj.name)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 # --- VIEWSET RASCUNHO COM HISTÓRICO E ACTION ---
@@ -81,51 +90,37 @@ class RascunhoContratoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated] # Proteger por padrão
 
     def get_queryset(self):
-        # Filtrar para mostrar apenas rascunhos do usuário logado (IMPLEMENTAR FUTURAMENTE)
-        # return RascunhoContrato.objects.filter(usuario=self.request.user)
-        return RascunhoContrato.objects.all() # Temporário: mostra todos
+        # (Implementar filtro por usuário no futuro)
+        return RascunhoContrato.objects.all()
+
+    def _criar_historico(self, rascunho, evento_especial=None):
+        """Função helper para criar entrada de histórico."""
+        dados = {
+            'titulo_documento': rascunho.titulo_documento,
+            'partes_atribuidas': rascunho.partes_atribuidas,
+            'variaveis_preenchidas': rascunho.variaveis_preenchidas,
+            'clausulas_finais': rascunho.clausulas_finais,
+            'status': rascunho.status,
+        }
+        if evento_especial:
+            dados['evento'] = evento_especial
+
+        HistoricoRascunho.objects.create(
+            rascunho=rascunho,
+            usuario=self.request.user if self.request.user.is_authenticated else None,
+            dados_rascunho=dados
+        )
 
     # --- MÉTODO CHAMADO QUANDO UM RASCUNHO É CRIADO (POST) ---
     def perform_create(self, serializer):
-        # Adicionar o usuário logado ao salvar (IMPLEMENTAR FUTURAMENTE, requer campo no RascunhoContrato)
-        # rascunho = serializer.save(usuario=self.request.user)
-        rascunho = serializer.save() # Salva o rascunho primeiro
-            # --- ADICIONE ESTAS LINHAS PARA DEBUG ---
-        print("--- Campos do Modelo HistoricoRascunho ---")
-        print([field.name for field in HistoricoRascunho._meta.get_fields()])
-        print("---------------------------------------")
-            # --- FIM DAS LINHAS DE DEBUG ---
-
-
-        # Cria a primeira entrada no histórico associando o usuário
-        HistoricoRascunho.objects.create(
-            rascunho=rascunho,
-            usuario=self.request.user if self.request.user.is_authenticated else None, # Associa usuário logado
-            dados_rascunho={
-                'titulo_documento': rascunho.titulo_documento,
-                'partes_atribuidas': rascunho.partes_atribuidas,
-                'variaveis_preenchidas': rascunho.variaveis_preenchidas,
-                'clausulas_finais': rascunho.clausulas_finais,
-                'status': rascunho.status,
-            }
-        )
+        # (Adicionar 'usuario=self.request.user' aqui se o RascunhoContrato tiver esse campo)
+        rascunho = serializer.save()
+        self._criar_historico(rascunho, evento_especial="Criação do Rascunho")
 
     # --- MÉTODO CHAMADO QUANDO UM RASCUNHO É ATUALIZADO (PUT/PATCH geral) ---
     def perform_update(self, serializer):
-        rascunho = serializer.save() # Salva as alterações no rascunho
-
-        # Cria uma nova entrada no histórico associando o usuário
-        HistoricoRascunho.objects.create(
-            rascunho=rascunho,
-            usuario=self.request.user if self.request.user.is_authenticated else None, # Associa usuário logado
-            dados_rascunho={
-                'titulo_documento': rascunho.titulo_documento,
-                'partes_atribuidas': rascunho.partes_atribuidas,
-                'variaveis_preenchidas': rascunho.variaveis_preenchidas,
-                'clausulas_finais': rascunho.clausulas_finais,
-                'status': rascunho.status,
-            }
-        )
+        rascunho = serializer.save()
+        self._criar_historico(rascunho, evento_especial="Rascunho atualizado (Salvar)")
 
     # --- ACTION PARA ATUALIZAR STATUS ESPECIFICAMENTE ---
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
@@ -135,15 +130,12 @@ class RascunhoContratoViewSet(viewsets.ModelViewSet):
         Espera um payload como: {"status": "REVISAO"}
         """
         try:
-            rascunho = self.get_object() # Obtém o rascunho pelo pk
-            # Verificar permissão do usuário aqui no futuro
-            # if rascunho.usuario != request.user:
-            #     return Response({"error": "Permissão negada."}, status=status.HTTP_403_FORBIDDEN)
+            rascunho = self.get_object()
         except RascunhoContrato.DoesNotExist:
              return Response({"error": "Rascunho não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
-
         new_status = request.data.get('status')
+        old_status = rascunho.status
 
         # Validação do status
         valid_statuses = [choice[0] for choice in RascunhoContrato.StatusContrato.choices]
@@ -153,39 +145,53 @@ class RascunhoContratoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Salva o status anterior para comparar se houve mudança
-        old_status = rascunho.status
-
-        # Atualiza o status e salva
+        if old_status == new_status:
+            return Response(self.get_serializer(rascunho).data, status=status.HTTP_200_OK) # Nenhum
+            
         rascunho.status = new_status
         rascunho.save(update_fields=['status'])
 
-        # Cria entrada no histórico SOMENTE se o status mudou através desta action específica
-        if old_status != new_status:
-            HistoricoRascunho.objects.create(
-                rascunho=rascunho,
-                usuario=self.request.user if self.request.user.is_authenticated else None,
-                dados_rascunho={
-                    'titulo_documento': rascunho.titulo_documento,
-                    'partes_atribuidas': rascunho.partes_atribuidas, # Pode ser otimizado para não guardar tudo só pela mudança de status
-                    'variaveis_preenchidas': rascunho.variaveis_preenchidas,
-                    'clausulas_finais': rascunho.clausulas_finais,
-                    'status': rascunho.status, # Guarda o novo status
-                    # Adiciona uma nota sobre a mudança de status
-                    'evento': f'Status alterado de {old_status} para {new_status}'
-                }
-            )
+        # Cria entrada no histórico SOMENTE se o status mudou
+        self._criar_historico(rascunho, evento_especial=f'Status alterado de {old_status} para {new_status}')
 
         serializer = self.get_serializer(rascunho)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    # --- ACTION PARA LER O HISTÓRICO ---
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def historico(self, request, pk=None):
+        """
+        Retorna o histórico de versões de um rascunho.
+        """
+        rascunho = self.get_object() # Obtém o rascunho
+        # Busca o histórico ordenado (o Meta no modelo já faz isso, mas garantimos)
+        historico = rascunho.historico.all().order_by('-timestamp')
+        
+        # (Adicionar paginação no futuro se o histórico ficar muito grande)
+        
+        # Precisamos de um serializer para o HistoricoRascunho
+        # Como ainda não temos um, vamos retornar os dados manualmente (simples)
+        # (O ideal é criar um HistoricoRascunhoSerializer)
+        
+        dados_historico = [
+            {
+                "id": h.id,
+                "timestamp": h.timestamp,
+                "usuario": h.usuario.username if h.usuario else "Sistema",
+                "evento": h.dados_rascunho.get('evento', 'Atualização')
+            }
+            for h in historico
+        ]
+        
+        return Response(dados_historico, status=status.HTTP_200_OK)
 
 
 # --- VIEWS DE UTILITÁRIOS (Mantidas) ---
+# (Protegidas com IsAuthenticated, exceto ViaCEP)
 
 class ImportClauseTextView(APIView):
-    permission_classes = [IsAuthenticated] # Proteger
+    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
-    # ... (código do método post sem alterações) ...
     def post(self, request, format=None):
         file_obj = request.data['file']
         if file_obj.name.endswith('.docx'):
@@ -204,14 +210,14 @@ class ImportClauseTextView(APIView):
         return Response({"error": "Formato de arquivo não suportado."}, status=status.HTTP_400_BAD_REQUEST)
 
 class ExportDocxView(APIView):
-    permission_classes = [IsAuthenticated] # Proteger
-    # ... (código do método post sem alterações) ...
+    permission_classes = [IsAuthenticated]
     def post(self, request, format=None):
         html_content = request.data.get('html')
         if not html_content:
             return Response({"error": "Nenhum conteúdo HTML fornecido."}, status=status.HTTP_400_BAD_REQUEST)
         temp_file_path = None
         try:
+            # Garante que pypandoc está instalado no container (feito no Dockerfile)
             with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tf:
                 temp_file_path = tf.name
             pypandoc.convert_text(html_content, 'docx', format='html', outputfile=temp_file_path)
@@ -231,7 +237,6 @@ class ExportDocxView(APIView):
 
 class ViaCEPView(APIView):
     permission_classes = [AllowAny] # Manter como AllowAny
-    # ... (código do método get sem alterações) ...
     def get(self, request, cep, format=None):
         cep_limpo = ''.join(re.findall(r'\d', str(cep)))
         if len(cep_limpo) != 8:

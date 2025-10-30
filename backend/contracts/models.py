@@ -74,18 +74,33 @@ class Anexo(models.Model):
     def __str__(self): return self.nome_arquivo
 
 # 8. HISTÓRICO DE VERSÕES DO RASCUNHO (NOVO MODELO)
+
+# 8. HISTÓRICO DE VERSÕES DO RASCUNHO (NOVO MODELO)
 class HistoricoRascunho(models.Model):
     rascunho = models.ForeignKey(RascunhoContrato, related_name='historico', on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True, db_index=True) # Data/Hora da criação da versão
-    #usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rascunhos', null=True) # Adicionar esta linha (ajuste on_delete se necessário)
-    dados_rascunho = models.JSONField(default=dict) # Armazena uma cópia dos dados relevantes
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, # Se o usuário for deletado, mantém o histórico
+        null=True,
+        blank=True
+    )
+    dados_rascunho = models.JSONField(default=dict)
 
     class Meta:
-        ordering = ['-timestamp'] # Ordena do mais recente para o mais antigo por padrão
+        ordering = ['-timestamp']
 
     def __str__(self):
-        # Formata a data para pt-BR no __str__ para facilitar a visualização no Admin
-        local_timestamp = self.timestamp.astimezone(pytz.timezone('America/Sao_Paulo')) # Ajuste o fuso se necessário
+        try:
+            tz = pytz.timezone(settings.TIME_ZONE)
+        except Exception:
+            tz = None
+
+        if tz:
+            local_timestamp = self.timestamp.astimezone(tz)
+        else:
+            local_timestamp = self.timestamp
+
         formatted_time = local_timestamp.strftime('%d/%m/%Y %H:%M:%S')
-        return f"Versão de {self.rascunho.titulo_documento or f'Rascunho {self.rascunho_id}'} em {formatted_time}"
+        user_info = f" por {self.usuario.username}" if self.usuario else ""
+        return f"Versão de {self.rascunho.titulo_documento or f'Rascunho {self.rascunho_id}'} em {formatted_time}{user_info}"

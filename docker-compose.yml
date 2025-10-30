@@ -1,16 +1,67 @@
+# docker-compose.yml
+
+
 services:
+  # Serviço do Banco de Dados PostgreSQL
   db:
     image: postgres:16
-    container_name: postgres_contratos
+    container_name: postgres_db_contratos
     restart: always
-    environment:
-      POSTGRES_USER: admin_contratos
-      POSTGRES_PASSWORD: strong_password_123
-      POSTGRES_DB: db_contratos
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Monta um volume para persistir os dados do banco
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # Lê as variáveis do arquivo .env especificado
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # Mapeia a porta do container para a porta do host (para debug)
+      - "5432:5432"
+    env_file:
+      - ./backend/.env # Especifica o caminho para o .env
 
+  # Serviço do Backend Django/Gunicorn
+  backend:
+    build: ./backend # Constrói a imagem a partir do Dockerfile na pasta backend
+    container_name: django_backend_contratos
+    restart: always
+    volumes:
+      # Volumes para ficheiros estáticos e de mídia (que o Nginx vai usar)
+      - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
+      # Monta o código fonte local no container (ótimo para desenvolvimento)
+      - ./backend:/app
+    expose:
+      # Expõe a porta interna para outros serviços (Nginx)
+      - 8000
+    depends_on:
+      # Garante que o banco de dados inicie antes do backend
+      - db
+    env_file:
+      # Carrega variáveis de ambiente do .env
+      - ./backend/.env
+
+  # Serviço do Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx_reverse_proxy_contratos
+    restart: always
+    ports:
+      # Mapeia a porta 80 do seu PC para a porta 80 do container
+      - "80:80"
+    volumes:
+      # Monta o arquivo de configuração do Nginx
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      # Monta os volumes de ficheiros estáticos e de mídia (apenas leitura)
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/mediafiles:ro
+    depends_on:
+      # Garante que o backend inicie antes do Nginx
+      - backend
+
+# Define os volumes nomeados (geridos pelo Docker)
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
