@@ -1,23 +1,28 @@
+// frontend/src/main.tsx
+// (FICHIRO MODIFICADO)
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 
 // Nossos componentes
-import { AuthProvider } from './context/AuthContext.tsx'; // Adiciona .tsx
-import Root from './Root.tsx'; // Adiciona .tsx
-import ProtectedRoute from './components/ProtectedRoute.tsx'; // Adiciona .tsx
-import Dashboard from './pages/Dashboard.tsx'; // Adiciona .tsx
-import LoginPage from './pages/LoginPage.tsx'; // Adiciona .tsx
-import App from './App.tsx'; // Adiciona .tsx
-import Biblioteca from './pages/Biblioteca.tsx'; // Adiciona .tsx
-import EditorClausula from './pages/EditorClausula.tsx'; // Adiciona .tsx
-import Clientes from './pages/Clientes.tsx'; // Adiciona .tsx
-import EditorCliente from './pages/EditorCliente.tsx'; // Adiciona .tsx
-import Configuracoes from './pages/Configuracoes.tsx'; // Adiciona .tsx
+import { AuthProvider } from './context/AuthContext.tsx';
+import Root from './Root.tsx';
+import ProtectedRoute from './components/ProtectedRoute.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+import App from './App.tsx';
+import Biblioteca from './pages/Biblioteca.tsx';
+import EditorClausula from './pages/EditorClausula.tsx';
+import Clientes from './pages/Clientes.tsx';
+import EditorCliente from './pages/EditorCliente.tsx';
+import Configuracoes from './pages/Configuracoes.tsx';
+// 1. IMPORTAR O NOVO EDITOR
+import EditorQualificacao from './pages/EditorQualificacao.tsx'; 
 
 import './index.css';
 
-// Roteador completo (sem alterações, já estava correto)
+// Roteador completo
 const router = createBrowserRouter([
   {
     element: <Root />,
@@ -37,6 +42,12 @@ const router = createBrowserRouter([
           { path: '/editor-cliente', element: <EditorCliente /> },
           { path: '/editor-cliente/:id', element: <EditorCliente /> },
           { path: '/configuracoes', element: <Configuracoes /> }, 
+
+          // 2. ADICIONAR AS NOVAS ROTAS AQUI
+          { path: '/editor-qualificacao', element: <EditorQualificacao /> },
+          { path: '/editor-qualificacao/:id', element: <EditorQualificacao /> },
+
+          // Rota Curinga (sempre por último)
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },
