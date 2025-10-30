@@ -21,6 +21,3 @@ urlpatterns = [
     path('utils/viacep/<str:cep>/', views.ViaCEPView.as_view(), name='viacep-proxy'),
     path('clauses/import_text/', views.ImportClauseTextView.as_view(), name='import-clause-text'),
 ]
-print('--- URLs Geradas pelo Router (Após Refatoração) ---') # Linha para adicionar
-print(router.urls)                                          # Linha para adicionar
-print('--------------------------------------------------')
