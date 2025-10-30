@@ -30,4 +30,4 @@ EXPOSE 8000
 
 # Comando para rodar a aplicação usando Gunicorn
 # Adaptado para o nome do seu projeto: 'srv_contratos'
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "srv_contratos.wsgi:application"]
+CMD ["gunicorn", "--workers=4", "--bind", "0.0.0.0:8000", "srv_contratos.wsgi:application"]

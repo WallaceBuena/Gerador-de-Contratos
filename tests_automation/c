@@ -1,0 +1,21 @@
+# tests_automation/conftest.py
+# ... (adicionar imports do Selenium)
+from selenium import webdriver
+
+# ... (fixtures anteriores) ...
+
+@pytest.fixture(scope="function")
+def driver(base_url):
+    """ Fornece uma instância do WebDriver (Chrome) para cada teste """
+    options = webdriver.ChromeOptions()
+    # options.add_argument("--headless") # Descomente para rodar sem interface
+    options.add_argument("--window-size=1920,1080")
+
+    driver_instance = webdriver.Chrome(options=options)
+    driver_instance.base_url = base_url # Armazena a URL base no driver
+    driver_instance.implicitly_wait(5) # Espera implícita
+
+    yield driver_instance
+
+    # Teardown (após o teste rodar)
+    driver_instance.quit()

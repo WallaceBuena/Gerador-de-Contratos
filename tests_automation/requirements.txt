@@ -1,0 +1,10 @@
+# tests_automation/requirements.txt
+pytest
+pytest-html
+pytest-xdist
+requests
+selenium
+Faker
+locust
+allure-pytest
+python-dotenv
